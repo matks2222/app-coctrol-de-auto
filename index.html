@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Mantenimiento</title>
+    <style>
+        :root { --primary: #2563eb; --danger: #ef4444; --success: #22c55e; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: auto; }
+        h1 { color: #1e293b; text-align: center; font-size: 1.5rem; }
+        
+        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 6px solid #cbd5e1; }
+        .card.vencido { border-left-color: var(--danger); }
+        .card.al-dia { border-left-color: var(--success); }
+        
+        .form-group { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input, select, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.9; }
+        
+        .info { font-size: 0.85rem; color: #64748b; margin-top: 5px; }
+        .status-tag { font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛠️ Mi Control Automotriz</h1>
+
+    <div class="form-group">
+        <h3>Registrar Servicio</h3>
+        <label>Kilometraje Actual</label>
+        <input type="number" id="kmInput" placeholder="Ej: 105000">
+        
+        <label>Tipo de Servicio</label>
+        <select id="servicioSelect">
+            <option value="aceite">Aceite y Filtro (6 meses / 10k km)</option>\
+            <option value="bujias">Cambio de Bujías (12 meses / 20k km)</option>
+            <option value="tambor">Frenos de Tambor (100k km)</option>
+            <option value="niveles">Revisión de Niveles (Mensual)</option>
+            <option value="llantas">Presión de Llantas (Mensual)</option>
+            <option value="luces">Luces y Frenos Gral.</option>
+        </select>
+        
+        <button onclick="guardarServicio()">Actualizar Registro</button>
+    </div>
+
+    <div id="listaMantenimiento"></div>
+</div>
+
+<script>
+    // Configuración de frecuencias
+    const CONFIG = {
+        aceite: { nombre: "Aceite y Filtro", km: 10000, meses: 6 },
+        bujias: { nombre: "Cambio de Bujías", km: 20000, meses: 12 },
+        tambor: { nombre: "Frenos de Tambor", km: 100000, meses: null },
+        niveles: { nombre: "Revisión de Niveles", km: null, meses: 1 },
+        llantas: { nombre: "Presión de Llantas", km: null, meses: 1 },
+        luces: { nombre: "Luces y Frenos Gral.", km: 10000, meses: 6 }
+    };
+
+    // Cargar datos guardados o iniciar vacíos
+    let datos = JSON.parse(localStorage.getItem('mantenimientoAuto')) || {};
+
+    function guardarServicio() {
+        const km = parseInt(document.getElementById('kmInput').value);
+        const tipo = document.getElementById('servicioSelect').value;
+        const fecha = new Date().toISOString();
+
+        if (!km) return alert("Por favor ingresa el kilometraje actual");
+
+        datos[tipo] = { ultimoKm: km, ultimaFecha: fecha };
+        localStorage.setItem('mantenimientoAuto', JSON.stringify(datos));
+        localStorage.setItem('kmGlobal', km);
+        
+        renderizar();
+    }
+
+    function renderizar() {
+        const lista = document.getElementById('listaMantenimiento');
+        const kmActual = parseInt(localStorage.getItem('kmGlobal')) || 0;
+        const hoy = new Date();
+        lista.innerHTML = "";
+
+        for (let key in CONFIG) {
+            const config = CONFIG[key];
+            const registro = datos[key];
+            let esVencido = false;
+            let razon = "";
+
+            if (!registro) {
+                esVencido = true;
+                razon = "Sin registro previo";
+            } else {
+                // Chequeo por KM
+                if (config.km && (kmActual - registro.ultimoKm) >= config.km) {
+                    esVencido = true;
+                    razon = `Exceso de ${config.km} km`;
+                }
+                // Chequeo por Fecha
+                if (config.meses) {
+                    const fechaLimite = new Date(registro.ultimaFecha);
+                    fechaLimite.setMonth(fechaLimite.getMonth() + config.meses);
+                    if (hoy > fechaLimite) {
+                        esVencido = true;
+                        razon = `Hace más de ${config.meses} mes(es)`;
+                    }
+                }
+            }
+
+            lista.innerHTML += `
+                <div class="card ${esVencido ? 'vencido' : 'al-dia'}">
+                    <span class="status-tag" style="color: ${esVencido ? 'red' : 'green'}">
+                        ${esVencido ? '⚠️ Pendiente' : '✅ Al día'}
+                    </span>
+                    <div style="font-weight: bold; font-size: 1.1rem;">${config.nombre}</div>
+                    <div class="info">
+                        ${registro ? `Último: ${registro.ultimoKm} km | ${new Date(registro.ultimaFecha).toLocaleDateString()}` : 'Nunca realizado'}
+                    </div>
+                    ${esVencido ? `<div class="info" style="color:var(--danger)">Razón: ${razon}</div>` : ''}
+                </div>
+            `;
+        }
+    }
+
+    renderizar();
+</script>
+</body>
+</html>
