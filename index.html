@@ -30,22 +30,24 @@
     <h1>🛠️ Mi Control Automotriz</h1>
 
     <div class="form-group">
-        <h3>Registrar Servicio</h3>
-        <label>Kilometraje Actual</label>
-        <input type="number" id="kmInput" placeholder="Ej: 105000">
-        
-        <label>Tipo de Servicio</label>
-        <select id="servicioSelect">
-            <option value="aceite">Aceite y Filtro (6 meses / 10k km)</option>\
-            <option value="bujias">Cambio de Bujías (12 meses / 20k km)</option>
-            <option value="tambor">Frenos de Tambor (100k km)</option>
-            <option value="niveles">Revisión de Niveles (Mensual)</option>
-            <option value="llantas">Presión de Llantas (Mensual)</option>
-            <option value="luces">Luces y Frenos Gral.</option>
-        </select>
-        
-        <button onclick="guardarServicio()">Actualizar Registro</button>
-    </div>
+    <h3>Registrar Servicio</h3>
+    
+    <label>Kilometraje en el momento del servicio</label>
+    <input type="number" id="kmInput" placeholder="Ej: 105000">
+    
+    <label>Fecha del servicio</label>
+    <input type="date" id="fechaInput"> <label>Tipo de Servicio</label>
+    <select id="servicioSelect">
+        <option value="aceite">Aceite y Filtro (6 meses / 10k km)</option>
+        <option value="bujias">Cambio de Bujías (12 meses / 20k km)</option>
+        <option value="tambor">Frenos de Tambor (100k km)</option>
+        <option value="niveles">Revisión de Niveles (Mensual)</option>
+        <option value="llantas">Presión de Llantas (Mensual)</option>
+        <option value="luces">Luces y Frenos Gral.</option>
+    </select>
+    
+    <button onclick="guardarServicio()">Actualizar Registro</button>
+</div>
 
     <div id="listaMantenimiento"></div>
 </div>
@@ -65,18 +67,26 @@
     let datos = JSON.parse(localStorage.getItem('mantenimientoAuto')) || {};
 
     function guardarServicio() {
-        const km = parseInt(document.getElementById('kmInput').value);
-        const tipo = document.getElementById('servicioSelect').value;
-        const fecha = new Date().toISOString();
+    const km = parseInt(document.getElementById('kmInput').value);
+    const tipo = document.getElementById('servicioSelect').value;
+    const fechaSeleccionada = document.getElementById('fechaInput').value;
 
-        if (!km) return alert("Por favor ingresa el kilometraje actual");
+    if (!km) return alert("Por favor ingresa el kilometraje");
 
-        datos[tipo] = { ultimoKm: km, ultimaFecha: fecha };
-        localStorage.setItem('mantenimientoAuto', JSON.stringify(datos));
-        localStorage.setItem('kmGlobal', km);
-        
-        renderizar();
-    }
+    // Si no eliges fecha, usa la de hoy. Si eliges, ajusta la hora para evitar errores de zona horaria.
+    const fecha = fechaSeleccionada ? new Date(fechaSeleccionada + "T12:00:00").toISOString() : new Date().toISOString();
+
+    datos[tipo] = { ultimoKm: km, ultimaFecha: fecha };
+    
+    // Guardamos el kilometraje más alto como el "actual" del vehículo
+    const kmActual = parseInt(localStorage.getItem('kmGlobal')) || 0;
+    if (km > kmActual) localStorage.setItem('kmGlobal', km);
+    
+    localStorage.setItem('mantenimientoAuto', JSON.stringify(datos));
+    
+    renderizar();
+    alert("¡Registro guardado exitosamente!");
+}
 
     function renderizar() {
         const lista = document.getElementById('listaMantenimiento');
