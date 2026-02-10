@@ -3,135 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Mantenimiento</title>
+    <title>Control de Mi Auto</title>
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22ControlAuto%22,%22short_name%22:%22MiAuto%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#ffffff%22,%22theme_color%22:%22#2563eb%22}">
     <style>
-        :root { --primary: #2563eb; --danger: #ef4444; --success: #22c55e; --bg: #f8fafc; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 500px; margin: auto; }
-        h1 { color: #1e293b; text-align: center; font-size: 1.5rem; }
-        
-        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; 
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 6px solid #cbd5e1; }
-        .card.vencido { border-left-color: var(--danger); }
-        .card.al-dia { border-left-color: var(--success); }
-        
+        :root { --primary: #2563eb; --danger: #ef4444; --success: #22c55e; --bg: #f1f5f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        .container { max-width: 600px; margin: auto; }
+        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 6px solid #cbd5e1; }
+        .vencido { border-left-color: var(--danger); }
+        .al-dia { border-left-color: var(--success); }
         .form-group { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input, select, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { opacity: 0.9; }
-        
-        .info { font-size: 0.85rem; color: #64748b; margin-top: 5px; }
-        .status-tag { font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
+        input, select, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; margin-top: 15px; }
+        .historial-item { font-size: 0.85rem; padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        h2, h3 { color: #1e293b; margin-top: 25px; }
+        .badge { font-weight: bold; font-size: 0.7rem; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🛠️ Mi Control Automotriz</h1>
+    <h2>🚗 Mi Control Automotriz</h2>
 
     <div class="form-group">
-    <h3>Registrar Servicio</h3>
-    
-    <label>Kilometraje en el momento del servicio</label>
-    <input type="number" id="kmInput" placeholder="Ej: 105000">
-    
-    <label>Fecha del servicio</label>
-    <input type="date" id="fechaInput"> <label>Tipo de Servicio</label>
-    <select id="servicioSelect">
-        <option value="aceite">Aceite y Filtro (6 meses / 10k km)</option>
-        <option value="bujias">Cambio de Bujías (12 meses / 20k km)</option>
-        <option value="tambor">Frenos de Tambor (100k km)</option>
-        <option value="niveles">Revisión de Niveles (Mensual)</option>
-        <option value="llantas">Presión de Llantas (Mensual)</option>
-        <option value="luces">Luces y Frenos Gral.</option>
-    </select>
-    
-    <button onclick="guardarServicio()">Actualizar Registro</button>
-</div>
+        <h3>Registrar Mantenimiento</h3>
+        <label>Kilometraje Actual</label>
+        <input type="number" id="kmInput" id="kmInput" placeholder="Ej: 105000">
+        
+        <label>Fecha del Servicio</label>
+        <input type="date" id="fechaInput">
+        
+        <label>Tipo de Servicio</label>
+        <select id="servicioSelect">
+            <option value="aceite">Aceite y Filtro (6 meses / 10k km)</option>
+            <option value="bujias">Bujías (12 meses / 20k km)</option>
+            <option value="tambor">Frenos de Tambor (100k km)</option>
+            <option value="niveles">Niveles (Mensual)</option>
+            <option value="llantas">Llantas (Mensual)</option>
+        </select>
+        
+        <button onclick="guardarServicio()">Guardar en Historial</button>
+    </div>
 
-    <div id="listaMantenimiento"></div>
+    <h3>Estatus Actual</h3>
+    <div id="listaEstatus"></div>
+
+    <h3>📜 Historial Reciente</h3>
+    <div id="historialLista" class="card"></div>
+    
+    <button onclick="borrarTodo()" style="background:#64748b; font-size: 0.7rem; padding: 5px;">Reiniciar App</button>
 </div>
 
 <script>
-    // Configuración de frecuencias
     const CONFIG = {
         aceite: { nombre: "Aceite y Filtro", km: 10000, meses: 6 },
-        bujias: { nombre: "Cambio de Bujías", km: 20000, meses: 12 },
+        bujias: { nombre: "Bujías", km: 20000, meses: 12 },
         tambor: { nombre: "Frenos de Tambor", km: 100000, meses: null },
-        niveles: { nombre: "Revisión de Niveles", km: null, meses: 1 },
-        llantas: { nombre: "Presión de Llantas", km: null, meses: 1 },
-        luces: { nombre: "Luces y Frenos Gral.", km: 10000, meses: 6 }
+        niveles: { nombre: "Niveles", km: null, meses: 1 },
+        llantas: { nombre: "Llantas", km: null, meses: 1 }
     };
 
-    // Cargar datos guardados o iniciar vacíos
-    let datos = JSON.parse(localStorage.getItem('mantenimientoAuto')) || {};
+    // Estructura: historial = [{tipo, km, fecha}, ...]
+    let historial = JSON.parse(localStorage.getItem('historialAuto')) || [];
 
     function guardarServicio() {
-    const km = parseInt(document.getElementById('kmInput').value);
-    const tipo = document.getElementById('servicioSelect').value;
-    const fechaSeleccionada = document.getElementById('fechaInput').value;
+        const km = parseInt(document.getElementById('kmInput').value);
+        const tipo = document.getElementById('servicioSelect').value;
+        const fInput = document.getElementById('fechaInput').value;
+        const fecha = fInput ? new Date(fInput + "T12:00:00").toISOString() : new Date().toISOString();
 
-    if (!km) return alert("Por favor ingresa el kilometraje");
+        if (!km) return alert("Ingresa el kilometraje");
 
-    // Si no eliges fecha, usa la de hoy. Si eliges, ajusta la hora para evitar errores de zona horaria.
-    const fecha = fechaSeleccionada ? new Date(fechaSeleccionada + "T12:00:00").toISOString() : new Date().toISOString();
-
-    datos[tipo] = { ultimoKm: km, ultimaFecha: fecha };
-    
-    // Guardamos el kilometraje más alto como el "actual" del vehículo
-    const kmActual = parseInt(localStorage.getItem('kmGlobal')) || 0;
-    if (km > kmActual) localStorage.setItem('kmGlobal', km);
-    
-    localStorage.setItem('mantenimientoAuto', JSON.stringify(datos));
-    
-    renderizar();
-    alert("¡Registro guardado exitosamente!");
-}
+        historial.push({ tipo, km, fecha });
+        // Ordenar por fecha (más reciente primero)
+        historial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        localStorage.setItem('historialAuto', JSON.stringify(historial));
+        renderizar();
+    }
 
     function renderizar() {
-        const lista = document.getElementById('listaMantenimiento');
-        const kmActual = parseInt(localStorage.getItem('kmGlobal')) || 0;
+        const estatusDiv = document.getElementById('listaEstatus');
+        const historialDiv = document.getElementById('historialLista');
         const hoy = new Date();
-        lista.innerHTML = "";
+        
+        // Obtener el km más alto registrado
+        const kmActual = historial.length > 0 ? Math.max(...historial.map(h => h.km)) : 0;
 
+        // Render Estatus
+        estatusDiv.innerHTML = "";
         for (let key in CONFIG) {
             const config = CONFIG[key];
-            const registro = datos[key];
-            let esVencido = false;
-            let razon = "";
-
-            if (!registro) {
-                esVencido = true;
-                razon = "Sin registro previo";
-            } else {
-                // Chequeo por KM
-                if (config.km && (kmActual - registro.ultimoKm) >= config.km) {
-                    esVencido = true;
-                    razon = `Exceso de ${config.km} km`;
-                }
-                // Chequeo por Fecha
+            const registrosTipo = historial.filter(h => h.tipo === key);
+            const ultimo = registrosTipo[0]; // El primero tras el sort
+            
+            let vencido = !ultimo;
+            if (ultimo) {
+                if (config.km && (kmActual - ultimo.km) >= config.km) vencido = true;
                 if (config.meses) {
-                    const fechaLimite = new Date(registro.ultimaFecha);
-                    fechaLimite.setMonth(fechaLimite.getMonth() + config.meses);
-                    if (hoy > fechaLimite) {
-                        esVencido = true;
-                        razon = `Hace más de ${config.meses} mes(es)`;
-                    }
+                    let limite = new Date(ultimo.fecha);
+                    limite.setMonth(limite.getMonth() + config.meses);
+                    if (hoy > limite) vencido = true;
                 }
             }
 
-            lista.innerHTML += `
-                <div class="card ${esVencido ? 'vencido' : 'al-dia'}">
-                    <span class="status-tag" style="color: ${esVencido ? 'red' : 'green'}">
-                        ${esVencido ? '⚠️ Pendiente' : '✅ Al día'}
-                    </span>
-                    <div style="font-weight: bold; font-size: 1.1rem;">${config.nombre}</div>
-                    <div class="info">
-                        ${registro ? `Último: ${registro.ultimoKm} km | ${new Date(registro.ultimaFecha).toLocaleDateString()}` : 'Nunca realizado'}
-                    </div>
-                    ${esVencido ? `<div class="info" style="color:var(--danger)">Razón: ${razon}</div>` : ''}
-                </div>
-            `;
+            estatusDiv.innerHTML += `
+                <div class="card ${vencido ? 'vencido' : 'al-dia'}">
+                    <strong>${config.nombre}</strong> <br>
+                    <small>${ultimo ? `Último: ${ultimo.km}km (${new Date(ultimo.fecha).toLocaleDateString()})` : 'Sin registros'}</small>
+                </div>`;
+        }
+
+        // Render Historial
+        historialDiv.innerHTML = historial.length > 0 ? "" : "No hay servicios registrados.";
+        historial.slice(0, 10).forEach(h => {
+            historialDiv.innerHTML += `
+                <div class="historial-item">
+                    <span>${CONFIG[h.tipo].nombre}</span>
+                    <span style="color:#64748b">${h.km} km | ${new Date(h.fecha).toLocaleDateString()}</span>
+                </div>`;
+        });
+    }
+
+    function borrarTodo() {
+        if(confirm("¿Seguro que quieres borrar todo el historial?")) {
+            localStorage.clear();
+            historial = [];
+            renderizar();
         }
     }
 
