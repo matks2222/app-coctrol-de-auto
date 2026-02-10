@@ -14,10 +14,9 @@
         .al-dia { border-left-color: var(--success); }
         .form-group { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         input, select, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
-        button { background: var(--primary); color: white; border: none; font-weight: bold; margin-top: 15px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .historial-item { font-size: 0.85rem; padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
         h2, h3 { color: #1e293b; margin-top: 25px; }
-        .badge { font-weight: bold; font-size: 0.7rem; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -28,18 +27,29 @@
     <div class="form-group">
         <h3>Registrar Mantenimiento</h3>
         <label>Kilometraje Actual</label>
-        <input type="number" id="kmInput" id="kmInput" placeholder="Ej: 105000">
+        <input type="number" id="kmInput" placeholder="Ej: 105000">
         
         <label>Fecha del Servicio</label>
         <input type="date" id="fechaInput">
         
         <label>Tipo de Servicio</label>
         <select id="servicioSelect">
-            <option value="aceite">Aceite y Filtro (6 meses / 10k km)</option>
-            <option value="bujias">Bujías (12 meses / 20k km)</option>
-            <option value="tambor">Frenos de Tambor (100k km)</option>
-            <option value="niveles">Niveles (Mensual)</option>
-            <option value="llantas">Llantas (Mensual)</option>
+            <optgroup label="Motor y Filtros">
+                <option value="aceite">Aceite y Filtro (6 meses / 10k km)</option>
+                <option value="bujias">Bujías (12 meses / 20k km)</option>
+                <option value="niveles">Niveles de Fluidos (Mensual)</option>
+            </optgroup>
+            <optgroup label="Llantas y Suspensión">
+                <option value="alineacion">Alineación y Balanceo (10k km)</option>
+                <option value="llantaDD">Llanta Delantera Derecha (5 años)</option>
+                <option value="llantaDI">Llanta Delantera Izquierda (5 años)</option>
+                <option value="llantaTD">Llanta Trasera Derecha (5 años)</option>
+                <option value="llantaTI">Llanta Trasera Izquierda (5 años)</option>
+            </optgroup>
+            <optgroup label="Frenos">
+                <option value="tambor">Frenos de Tambor (100k km)</option>
+                <option value="luces">Luces y Frenos Gral.</option>
+            </optgroup>
         </select>
         
         <button onclick="guardarServicio()">Guardar en Historial</button>
@@ -58,12 +68,16 @@
     const CONFIG = {
         aceite: { nombre: "Aceite y Filtro", km: 10000, meses: 6 },
         bujias: { nombre: "Bujías", km: 20000, meses: 12 },
+        niveles: { nombre: "Niveles de Fluidos", km: null, meses: 1 },
+        alineacion: { nombre: "Alineación y Balanceo", km: 10000, meses: null },
+        llantaDD: { nombre: "Llanta Delantera Der.", km: null, meses: 60 },
+        llantaDI: { nombre: "Llanta Delantera Izq.", km: null, meses: 60 },
+        llantaTD: { nombre: "Llanta Trasera Der.", km: null, meses: 60 },
+        llantaTI: { nombre: "Llanta Trasera Izq.", km: null, meses: 60 },
         tambor: { nombre: "Frenos de Tambor", km: 100000, meses: null },
-        niveles: { nombre: "Niveles", km: null, meses: 1 },
-        llantas: { nombre: "Llantas", km: null, meses: 1 }
+        luces: { nombre: "Luces y Frenos Gral.", km: 10000, meses: 6 }
     };
 
-    // Estructura: historial = [{tipo, km, fecha}, ...]
     let historial = JSON.parse(localStorage.getItem('historialAuto')) || [];
 
     function guardarServicio() {
@@ -72,30 +86,27 @@
         const fInput = document.getElementById('fechaInput').value;
         const fecha = fInput ? new Date(fInput + "T12:00:00").toISOString() : new Date().toISOString();
 
-        if (!km) return alert("Ingresa el kilometraje");
+        if (!km) return alert("Ingresa el kilometraje actual");
 
         historial.push({ tipo, km, fecha });
-        // Ordenar por fecha (más reciente primero)
         historial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         
         localStorage.setItem('historialAuto', JSON.stringify(historial));
         renderizar();
+        alert("Servicio guardado correctamente");
     }
 
     function renderizar() {
         const estatusDiv = document.getElementById('listaEstatus');
         const historialDiv = document.getElementById('historialLista');
         const hoy = new Date();
-        
-        // Obtener el km más alto registrado
         const kmActual = historial.length > 0 ? Math.max(...historial.map(h => h.km)) : 0;
 
-        // Render Estatus
         estatusDiv.innerHTML = "";
         for (let key in CONFIG) {
             const config = CONFIG[key];
             const registrosTipo = historial.filter(h => h.tipo === key);
-            const ultimo = registrosTipo[0]; // El primero tras el sort
+            const ultimo = registrosTipo[0];
             
             let vencido = !ultimo;
             if (ultimo) {
@@ -114,7 +125,6 @@
                 </div>`;
         }
 
-        // Render Historial
         historialDiv.innerHTML = historial.length > 0 ? "" : "No hay servicios registrados.";
         historial.slice(0, 10).forEach(h => {
             historialDiv.innerHTML += `
@@ -126,7 +136,7 @@
     }
 
     function borrarTodo() {
-        if(confirm("¿Seguro que quieres borrar todo el historial?")) {
+        if(confirm("¿Seguro que quieres borrar todo?")) {
             localStorage.clear();
             historial = [];
             renderizar();
